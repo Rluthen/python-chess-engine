@@ -37,8 +37,8 @@ class UCI:
                 pass
 
     def uci(self) -> None:
-        self.output("id name python-chess-engine")
-        self.output("id author Max, aka Disservin")
+        self.output("id name ADA-engine")
+        self.output("id author Rodolfo Luthe")
         self.output("")
         self.output("option name Move Overhead type spin default 5 min 0 max 5000")
         self.output("option name Ponder type check default false")

@@ -1,1 +1,1 @@
-pyinstaller --onefile --workpath ./build --distpath ./build --specpath ./build -n chess-engine ./src/main.py
+pyinstaller --onefile --workpath ./build --distpath ./build --specpath ./build -n ADA-engine ./src/main.py
