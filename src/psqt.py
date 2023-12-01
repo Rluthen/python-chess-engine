@@ -1,6 +1,15 @@
 import chess
 
 # fmt: off
+piece_values = {
+    None: 0,
+    chess.PAWN: 100,
+    chess.KNIGHT: 320,
+    chess.BISHOP: 330,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+    chess.KING: 10000,
+}
 
 """
 These are Position Square Tables used for modifying piece values
