@@ -3,7 +3,6 @@ import tt as TT
 import evaluation as Eval
 import psqt as PQST
 
-# External
 import chess
 import chess.polyglot
 from helpers import *
@@ -14,101 +13,62 @@ from sys import stdout
 class Search:
     def __init__(self, board: chess.Board) -> None:
         self.board = board
-
-        # This is our transposition table, it stores positions
-        # it is one of the most important parts of a chess engine.
-        # It stores results of previously performed searches and it
-        # allows to skip parts of the search tree and order moves.
         self.transposition_table = TT.TranspositionTable()
-
         self.pvLength = [0] * MAX_PLY
-        # This is our principal variation table, it stores the best
-        # moves for each depth. It is used to print the best line
-        # after the search is completed.
         self.pvTable = [[chess.Move.null()] * MAX_PLY for _ in range(MAX_PLY)]
 
-        # Total nodes searched
         self.nodes = 0
-
-        # Current limits for the search
         self.limit = Limits(0, MAX_PLY, 0)
 
-        # True when the search is stopped/aborted
         self.stop = False
-
-        # Time checking is expensive and we dont want to do it every node
         self.checks = CHECK_RATE
 
-        # Keeps track of the zobrist hashes encountered during the search
-        # Used to efficiently detect repetitions
         self.hashHistory: list[int] = []
-
-        # History Table
-        # Indexed by [color][from][to]
         self.htable = [[[0 for x in range(64)] for y in range(64)] for z in range(2)]
 
     def qsearch(self, alpha: int, beta: int, ply: int) -> int:
         """
         Quiescence Search, this is a special search that only searches
-        captures and checks. It is needed to avoid the horizon effect.
-        We will continue to search until we reach a quiet position.
+        captures and checks. It searches until we reach a quiet position.
         """
-        if self.stop or self.checkTime():
+        if self.checkTime() or self.stop:
             return 0
-
-        # Dont search higher than MAX_PLY
         if ply >= MAX_PLY:
             return Eval.Evaluation.evaluate(self.board)
 
-        # staticEval
-        bestValue = Eval.Evaluation.evaluate(self.board)
+        best = Eval.Evaluation.evaluate(self.board)
 
-        if bestValue >= beta:
-            return bestValue
+        if best >= beta:
+            return best
 
-        if bestValue > alpha:
-            alpha = bestValue
+        if best > alpha:
+            alpha = best
 
-        # Sort the moves, the highest score should come first,
-        # to reduce the size of the search tree
         moves = sorted(
             self.board.generate_legal_captures(),
             key=lambda move: self.scoreQMove(move),
             reverse=True,
         )
 
-        # Loop over all legal captures
         for move in moves:
             self.nodes += 1
+            piece = self.board.piece_type_at(move.to_square)
 
-            captured = self.board.piece_type_at(move.to_square)
-
-            # Delta Pruning
-            if (
-                PQST.piece_values[captured] + 400 + bestValue < alpha
-                and not move.promotion
-            ):
+            if (PQST.piece_values[piece] + best + 400) < alpha and not move.promotion:
                 continue
 
-            # Make move
             self.board.push(move)
-
             score = -self.qsearch(-beta, -alpha, ply + 1)
-
-            # Unmake move
             self.board.pop()
 
-            # We found a new best value
-            if score > bestValue:
-                bestValue = score
-
+            if score > best:
+                best = score
                 if score > alpha:
                     alpha = score
-
                     if score >= beta:
                         break
 
-        return bestValue
+        return best
 
     def absearch(self, alpha: int, beta: int, depth: int, ply: int) -> int:
         """
@@ -242,7 +202,7 @@ class Search:
 
                             self.htable[self.board.turn][move.from_square][
                                 move.to_square
-                            ] += hhBonus
+                            ] += hhBonus  # type: ignore
                         break
 
         # No moves were played so its checkmate or stalemate
@@ -345,7 +305,7 @@ class Search:
         # En passant
         if victim is None:
             victim = 1
-        return mvvlva[victim][attacker]
+        return mvvlva[victim][attacker]  # type: ignore
 
     # assign a score to moves in qsearch
     def scoreQMove(self, move: chess.Move) -> int:
@@ -383,7 +343,7 @@ class Search:
             return False
 
         timeNow = time.time_ns()
-        if (timeNow - self.t0) / 1_000_000 > self.limit.limited["time"]:
+        if (timeNow - self.t0) / 1_000_000 > (self.limit.limited["time"] * (1 / 24)):
             return True
 
         return False
@@ -439,13 +399,3 @@ class Search:
         self.checks = CHECK_RATE
         self.hashHistory = []
         self.htable = [[[0 for x in range(64)] for y in range(64)] for z in range(2)]
-
-
-# Run search.py instead of main.py if you want to profile it!
-if __name__ == "__main__":
-    board = chess.Board()
-    search = Search(board)
-
-    search.limit.limited["depth"] = 6
-
-    search.iterativeDeepening()

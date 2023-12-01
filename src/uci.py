@@ -109,12 +109,12 @@ class UCI:
                 ourTimeIncStr = "winc" if self.board.turn == chess.WHITE else "binc"
 
                 if ourTimeStr in input:
-                    limits.limited["time"] = (
+                    limits.limited["time"] = (  # type: ignore
                         int(splitted[splitted.index(ourTimeStr) + 1]) / 20
                     )
 
                 if ourTimeIncStr in input:
-                    limits.limited["time"] += (
+                    limits.limited["time"] += (  # type: ignore
                         int(splitted[splitted.index(ourTimeIncStr) + 1]) / 2
                     )
 
